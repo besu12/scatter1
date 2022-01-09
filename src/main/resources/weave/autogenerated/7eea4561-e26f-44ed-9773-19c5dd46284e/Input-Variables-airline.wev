@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_7eea4561_e26f_44ed_9773_19c5dd46284e_Input_Variables_airline = String | Null
+

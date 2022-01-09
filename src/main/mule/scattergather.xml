@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="87274de2-9e71-4136-b47e-79daa70beaed" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="ad403720-ad57-4734-a62d-1e77233863b3" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root22" />
+	</db:config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ae5374b1-aa3c-42e4-9d23-1dbc74e38f86" />
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="55681fff-8973-4a67-a045-7af63ee071d8" >
+		<wsc:connection wsdlLocation="http://mu.learn.mulesoft.com/delta?wsdl" service="TicketServiceService" port="TicketServicePort" address="http://mu.learn.mulesoft.com/delta" />
+	</wsc:config>
+	<flow name="scattergatherFlow" doc:id="42bd2d2b-a6c4-4cf7-8d10-da7eabec938f" >
+		<http:listener doc:name="/choice" doc:id="3db8f4b1-2d5a-47fb-a396-0cb63e64d309" config-ref="HTTP_Listener_config" path="/choice"/>
+		<ee:transform doc:name="Transform Message" doc:id="25ac6880-9230-4330-963f-e0d03d8539ac" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="airline" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams.airline]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="93544497-24b6-486d-984b-ef4cf43aa0b1" >
+			<when expression="#[vars.airline== 'united']">
+				<flow-ref doc:name="Flow Reference" doc:id="c81189d8-5623-4d30-ac7a-20350f95cc82" name="scattergatherFlow2"/>
+			</when>
+			<when expression="#[vars.airline== 'actor']">
+				<flow-ref doc:name="Flow Reference" doc:id="04ce0817-f250-4b4e-8a31-b379572b4819" name="scattergatherFlow1"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Flow Reference" doc:id="d2e56a19-3c61-478f-b6f6-09386d8a3c7c" name="scattergatherFlow3"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="scattergatherFlow3" doc:id="fc5fc4e8-591e-4888-b5ba-b8c9f78946a6" >
+		<ee:transform doc:name="Transform Message" doc:id="4b97d0d0-ce4f-4b01-bf90-4587ba15196d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://soap.training.mulesoft.com/
+---
+{
+	ns0#listAllFlights: null
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume operation="listAllFlights" doc:name="Consume" doc:id="c8766afc-f5ea-4355-8f4e-d2726aa1c46b" config-ref="Web_Service_Consumer_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="c4d56ed5-7cc9-475f-8fe7-321a1cd2e8c1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="scattergatherFlow2" doc:id="7eea4561-e26f-44ed-9773-19c5dd46284e" >
+		<http:request method="GET" doc:name="Request" doc:id="f1b40256-edf3-4816-b795-fcd00dd86573" config-ref="HTTP_Request_configuration" url="http://mu.learn.mulesoft.com/united/flights"/>
+		<ee:transform doc:name="Transform Message" doc:id="6a0eada1-dca3-42f1-8a86-df77fca5d51e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="scattergatherFlow1" doc:id="164dcbfb-62a9-43c7-b152-34c7c85eeb38" >
+		<db:select doc:name="Select" doc:id="cada95db-05b6-4dff-80af-f5bfaab623f8" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from sakila.actor ]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="b5594601-432d-4e9f-8e1f-eed74b68507d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
